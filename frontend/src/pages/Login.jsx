@@ -10,7 +10,7 @@ function Login() {
 
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handle = async (e) => {
     e.preventDefault();
 
     setLoading(true);
@@ -26,6 +26,12 @@ function Login() {
       setLoading(false);
       return;
     }
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    console.log("Access token:", session?.access_token);
 
     navigate("/upload");
   };
@@ -43,7 +49,7 @@ function Login() {
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-5">
+        <form onSubmit={handle} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1.5" htmlFor="email">
               Email address
