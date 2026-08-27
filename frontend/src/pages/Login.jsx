@@ -35,7 +35,7 @@ function Login() {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-stone-100 p-8 sm:p-10">
         <div className="mb-8 text-center">
           <div className="text-3xl font-extrabold tracking-tight text-stone-900 mb-2">
-            Vikram<span className="text-orange-500">Veda</span>
+            VedaAI <span className="text-orange-500">Pramana</span>
           </div>
           <h1 className="text-2xl font-semibold text-stone-900 tracking-tight">Welcome back</h1>
           <p className="text-sm text-stone-500 mt-2">

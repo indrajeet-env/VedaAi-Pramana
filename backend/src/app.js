@@ -8,8 +8,12 @@ app.use(express.json()); // allows the backend to parse json req bodies
 
 app.get("/", (req, res) => {
   res.json({
-    message: "Vikram-Veda backend is running"
+    message: "VedaAI Pramana backend is running"
   });
 });
+
+const assessmentRoutes = require('./routes/assessmentRoutes');
+
+app.use("/api/assessments", assessmentRoutes);
 
 module.exports = app;
