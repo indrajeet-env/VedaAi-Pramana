@@ -232,7 +232,31 @@ const processAssessment = async (req, res) => {
       totalMarks += question.maxMarks;
     }
 
-    // 6. Return final result
+    // 6. Calculate aggregate result
+
+    const percentage = totalMarks > 0 ? Number(((totalScore / totalMarks) * 100).toFixed(2)): 0;
+
+    const result = {questions: evaluatedQuestions};
+
+    // 7. Save result to database
+
+    const { error: resultUpdateError } = await supabase
+      .from("assessments")
+      .update({
+        total_score: totalScore,
+        total_marks: totalMarks,
+        percentage,
+        result,
+        status: "evaluated",
+      })
+      .eq("id", id)
+      .eq("user_id", req.user.id);
+
+    if (resultUpdateError) {
+      throw resultUpdateError;
+    }
+
+    // 8. Return final result
 
     return res.status(200).json({
       success: true,
@@ -241,12 +265,7 @@ const processAssessment = async (req, res) => {
       result: {
         totalScore,
         totalMarks,
-        percentage:
-          totalMarks > 0
-            ? Number(
-                ((totalScore / totalMarks) * 100).toFixed(2)
-              )
-            : 0,
+        percentage,
         questions: evaluatedQuestions,
       },
     });
