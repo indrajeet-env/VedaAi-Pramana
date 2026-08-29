@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { 
   School,
   ChevronLeft,
@@ -13,6 +13,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const [assessments, setAssessments] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState(null);
+  
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (showHistory) {
@@ -177,7 +179,14 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               ) : (
                 <div className="space-y-4">
                   {assessments.map(item => (
-                    <div key={item.id} className="border border-gray-100 rounded-xl p-4 hover:border-orange-200 transition-colors cursor-pointer bg-gray-50/50 flex flex-col gap-2">
+                    <div 
+                      key={item.id} 
+                      onClick={() => {
+                        setShowHistory(false);
+                        navigate(`/assessments/${item.id}`);
+                      }}
+                      className="border border-gray-100 rounded-xl p-4 hover:border-orange-200 transition-colors cursor-pointer bg-gray-50/50 flex flex-col gap-2"
+                    >
                       <div className="flex justify-between items-start">
                         <span className="text-xs font-semibold text-gray-500">
                           {new Date(item.created_at).toLocaleDateString()}

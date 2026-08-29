@@ -317,5 +317,86 @@ const getAssessments = async (req, res) => {
   }
 };
 
+const getAssessmentById = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-module.exports = {createAssessment, uploadAssessmentFiles, processAssessment, getAssessments};
+    const { data: assessment, error } = await supabase
+      .from("assessments")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", req.user.id)
+      .single();
+
+    if (error || !assessment) {
+      return res.status(404).json({
+        success: false,
+        message: "Assessment not found.",
+      });
+    }
+
+    let questionFileUrl = null;
+    let answerFileUrl = null;
+
+    if (assessment.question_file_path) {
+      const { data: qData, error: qError } = await supabase.storage
+        .from("question-papers")
+        .createSignedUrl(assessment.question_file_path, 3600);
+      if (!qError && qData) questionFileUrl = qData.signedUrl;
+    }
+
+    if (assessment.answer_file_path) {
+      const { data: aData, error: aError } = await supabase.storage
+        .from("answer-sheets")
+        .createSignedUrl(assessment.answer_file_path, 3600);
+      if (!aError && aData) answerFileUrl = aData.signedUrl;
+    }
+
+    return res.status(200).json({
+      success: true,
+      assessment: {
+        ...assessment,
+        questionFileUrl,
+        answerFileUrl,
+      },
+    });
+  } catch (error) {
+    console.error("Get assessment by id error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong.",
+    });
+  }
+};
+
+const getAnswerSheet = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { data: assessment, error } = await supabase
+      .from("assessments")
+      .select("answer_file_path")
+      .eq("id", id)
+      .eq("user_id", req.user.id)
+      .single();
+
+    if (error || !assessment || !assessment.answer_file_path) {
+      return res.status(404).json({ success: false, message: "Answer sheet not found." });
+    }
+
+    const buffer = await downloadAnswerSheet(assessment.answer_file_path);
+    
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="answer-sheet-${id}.pdf"`);
+    return res.send(buffer);
+  } catch (error) {
+    console.error("Get answer sheet error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load PDF.",
+    });
+  }
+};
+
+
+module.exports = {createAssessment, uploadAssessmentFiles, processAssessment, getAssessments, getAssessmentById, getAnswerSheet};

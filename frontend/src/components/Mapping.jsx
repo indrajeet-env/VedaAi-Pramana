@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 import { ChevronDown, ChevronUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Expand, Shrink, CheckCircle, AlertTriangle, Lightbulb } from "lucide-react";
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
   const [isAllExpanded, setIsAllExpanded] = useState(false);
@@ -14,6 +14,28 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
+  const [fileProp, setFileProp] = useState(null);
+
+  useEffect(() => {
+    const prepareFile = async () => {
+      if (!answerSheetUrl) {
+        setFileProp(null);
+        return;
+      }
+      if (answerSheetUrl.startsWith('blob:')) {
+        setFileProp(answerSheetUrl);
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        setFileProp({
+          url: answerSheetUrl,
+          httpHeaders: {
+            Authorization: `Bearer ${session?.access_token}`
+          }
+        });
+      }
+    };
+    prepareFile();
+  }, [answerSheetUrl]);
 
   const questions = apiResult?.questions || [];
 
@@ -166,10 +188,12 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
         </div>
 
         <div className="flex-1 bg-[#525659] relative overflow-auto flex justify-center py-20">
-          {answerSheetUrl ? (
+          {fileProp ? (
              <Document
-               file={answerSheetUrl}
+               key={answerSheetUrl}
+               file={fileProp}
                onLoadSuccess={onDocumentLoadSuccess}
+               onLoadError={(error) => console.error("PDF Load Error Details:", error)}
                className="flex flex-col items-center shadow-lg"
                loading={
                  <div className="text-white bg-black/50 px-4 py-2 rounded-lg">
