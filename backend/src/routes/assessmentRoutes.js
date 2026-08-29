@@ -6,7 +6,7 @@ const authMiddleware = require('../middlewares/authMiddleware');
 
 const upload = require('../middlewares/uploadMiddleware');
 
-const {createAssessment, uploadAssessmentFiles} = require('../controllers/assessmentController');
+const {createAssessment, uploadAssessmentFiles, processAssessment} = require('../controllers/assessmentController');
 
 router.post('/', authMiddleware, createAssessment);
 
@@ -22,5 +22,7 @@ router.post("/:id/upload", authMiddleware, upload.fields([
   ]),
   uploadAssessmentFiles
 );
+
+router.post('/:id/process', authMiddleware, processAssessment);
 
 module.exports = router;

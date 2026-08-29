@@ -1,4 +1,12 @@
 const supabase = require("../config/supabase");
+const { downloadAnswerSheet } = require("../services/storageService");
+const { extractTextWithOCR } = require("../services/ocrService");
+
+const sanitizeFileName = (fileName) => {
+  return fileName
+    .normalize("NFKD")
+    .replace(/[^\w.-]/g, "_");
+};
 
 const createAssessment = async (req, res) => {
   try {
@@ -62,9 +70,12 @@ const uploadAssessmentFiles = async (req, res) => {
       });
     }
 
-    const questionPath =`${req.user.id}/${id}/question-${Date.now()}-${questionPaper.originalname}`;
+    const questionFileName = sanitizeFileName(questionPaper.originalname);
+    const answerFileName = sanitizeFileName(answerSheet.originalname);
 
-    const answerPath =`${req.user.id}/${id}/answer-${Date.now()}-${answerSheet.originalname}`;
+    const questionPath = `${req.user.id}/${id}/question-${Date.now()}-${questionFileName}`;
+
+    const answerPath = `${req.user.id}/${id}/answer-${Date.now()}-${answerFileName}`;
 
     // Upload question paper
     const { error: questionUploadError } = await supabase.storage.from("question-papers").upload(questionPath, questionPaper.buffer, {
@@ -113,8 +124,63 @@ const uploadAssessmentFiles = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to upload files.",
+      error: error.message,
     });
   }
 };
 
-module.exports = {createAssessment, uploadAssessmentFiles};
+const processAssessment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Find assessment and verify ownership
+    const { data: assessment, error: assessmentError } = await supabase
+      .from("assessments")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", req.user.id)
+      .single();
+
+    if (assessmentError || !assessment) {
+      return res.status(404).json({
+        success: false,
+        message: "Assessment not found.",
+      });
+    }
+
+    if (!assessment.answer_file_path) {
+      return res.status(400).json({
+        success: false,
+        message: "Answer sheet has not been uploaded.",
+      });
+    }
+
+    // 2. Download existing answer sheet from Supabase Storage
+    const answerBuffer = await downloadAnswerSheet(
+      assessment.answer_file_path
+    );
+
+    // 3. Send it to OCR.space
+    const ocrResult = await extractTextWithOCR(
+      answerBuffer,
+      "answer-sheet.pdf"
+    );
+
+    // 4. Return OCR result for testing
+    return res.status(200).json({
+      success: true,
+      message: "OCR processing completed.",
+      ocr: ocrResult,
+    });
+  } catch (error) {
+    console.error("Assessment processing error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to process assessment.",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {createAssessment, uploadAssessmentFiles, processAssessment};
