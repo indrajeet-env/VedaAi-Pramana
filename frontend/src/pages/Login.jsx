@@ -27,9 +27,11 @@ function Login() {
       return;
     }
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const {data: { session }} = await supabase.auth.getSession();
+
+    const userEmail = session?.user?.email || email;
+
+    localStorage.setItem("userEmail", userEmail);
 
     console.log("Access token:", session?.access_token);
 
