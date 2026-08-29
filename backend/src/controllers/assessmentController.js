@@ -282,4 +282,40 @@ const processAssessment = async (req, res) => {
     });
   }
 };
-module.exports = {createAssessment, uploadAssessmentFiles, processAssessment};
+
+
+const getAssessments = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("assessments")
+      .select(
+        "id, question_file_path, answer_file_path, status, total_score, total_marks, percentage, created_at, updated_at"
+      )
+      .eq("user_id", req.user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Fetch assessments error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch assessments.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      assessments: data,
+    });
+  } catch (error) {
+    console.error("Get assessments controller error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong.",
+    });
+  }
+};
+
+
+module.exports = {createAssessment, uploadAssessmentFiles, processAssessment, getAssessments};
