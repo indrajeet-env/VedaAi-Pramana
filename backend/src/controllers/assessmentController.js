@@ -1,6 +1,9 @@
 const supabase = require("../config/supabase");
-const { downloadAnswerSheet } = require("../services/storageService");
+const {downloadAnswerSheet, downloadQuestionPaper} = require("../services/storageService");
+
 const { extractTextWithOCR } = require("../services/ocrService");
+
+const {structureAssessment, evaluateAnswer} = require("../services/llmService");
 
 const sanitizeFileName = (fileName) => {
   return fileName
@@ -134,12 +137,13 @@ const processAssessment = async (req, res) => {
     const { id } = req.params;
 
     // 1. Find assessment and verify ownership
-    const { data: assessment, error: assessmentError } = await supabase
-      .from("assessments")
-      .select("*")
-      .eq("id", id)
-      .eq("user_id", req.user.id)
-      .single();
+    const { data: assessment, error: assessmentError } =
+      await supabase
+        .from("assessments")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", req.user.id)
+        .single();
 
     if (assessmentError || !assessment) {
       return res.status(404).json({
@@ -148,32 +152,109 @@ const processAssessment = async (req, res) => {
       });
     }
 
-    if (!assessment.answer_file_path) {
+    if (
+      !assessment.question_file_path ||
+      !assessment.answer_file_path
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Answer sheet has not been uploaded.",
+        message:
+          "Both question paper and answer sheet must be uploaded.",
       });
     }
 
-    // 2. Download existing answer sheet from Supabase Storage
+    // 2. Download both files from Supabase
+
+    const questionBuffer = await downloadQuestionPaper(
+      assessment.question_file_path
+    );
+
     const answerBuffer = await downloadAnswerSheet(
       assessment.answer_file_path
     );
 
-    // 3. Send it to OCR.space
-    const ocrResult = await extractTextWithOCR(
+    // 3. OCR both files
+
+    const questionOCR = await extractTextWithOCR(
+      questionBuffer,
+      "question-paper.pdf"
+    );
+
+    const answerOCR = await extractTextWithOCR(
       answerBuffer,
       "answer-sheet.pdf"
     );
 
-    // 4. Return OCR result for testing
+    console.log("Question OCR completed.");
+    console.log("Answer OCR completed.");
+
+    // 4. Gemini structures the assessment
+
+    const structuredAssessment =
+      await structureAssessment(
+        questionOCR.text,
+        answerOCR.text
+      );
+
+    console.log(
+      `Gemini identified ${structuredAssessment.questions.length} questions.`
+    );
+
+    // 5. Evaluate every answer
+
+    const evaluatedQuestions = [];
+
+    let totalScore = 0;
+    let totalMarks = 0;
+
+// Currently this makes one gemini call per question, later on improve this for making one gemini call for atleast one side of the question paper
+
+    for (const question of structuredAssessment.questions) {
+      const evaluation = await evaluateAnswer(
+        question.question,
+        question.studentAnswer,
+        question.maxMarks
+      );
+
+      evaluatedQuestions.push({
+        questionNumber: question.questionNumber,
+        question: question.question,
+        studentAnswer: question.studentAnswer,
+        maxMarks: question.maxMarks,
+        score: evaluation.score,
+        feedback: evaluation.feedback,
+        strengths: evaluation.strengths,
+        weaknesses: evaluation.weaknesses,
+        unclearParts: question.unclearParts,
+      });
+
+      totalScore += evaluation.score;
+      totalMarks += question.maxMarks;
+    }
+
+    // 6. Return final result
+
     return res.status(200).json({
       success: true,
-      message: "OCR processing completed.",
-      ocr: ocrResult,
+      message: "Assessment processed successfully.",
+      assessmentId: id,
+      result: {
+        totalScore,
+        totalMarks,
+        percentage:
+          totalMarks > 0
+            ? Number(
+                ((totalScore / totalMarks) * 100).toFixed(2)
+              )
+            : 0,
+        questions: evaluatedQuestions,
+      },
     });
   } catch (error) {
-    console.error("Assessment processing error:", error);
+    console.error(
+      "Assessment processing error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -182,5 +263,4 @@ const processAssessment = async (req, res) => {
     });
   }
 };
-
 module.exports = {createAssessment, uploadAssessmentFiles, processAssessment};

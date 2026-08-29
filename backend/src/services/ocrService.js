@@ -43,7 +43,14 @@ const extractTextWithOCR = async (fileBuffer, fileName) => {
     );
   }
 
-  return result;
+  const extractedText = result.ParsedResults
+    ?.map((result) => result.ParsedText)
+    .join("\n");
+
+  return {
+    text: extractedText || "",
+    parsedResults: result.ParsedResults || [],
+  };
 };
 
 module.exports = {
