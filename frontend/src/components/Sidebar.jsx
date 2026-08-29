@@ -1,11 +1,58 @@
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 import { NavLink } from "react-router-dom";
 import { 
   School,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X
 } from "lucide-react";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
+  const [showHistory, setShowHistory] = useState(false);
+  const [assessments, setAssessments] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
+
+  useEffect(() => {
+    if (showHistory) {
+      setLoadingHistory(true);
+      setHistoryError(null);
+      
+      const fetchHistory = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) throw new Error("No active session");
+          
+          const res = await fetch("/api/assessments", {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`
+            }
+          });
+          
+          if (!res.ok) throw new Error("Failed to fetch assessments from server.");
+          
+          const data = await res.json();
+          setAssessments(data.assessments || []);
+        } catch (err) {
+          console.error(err);
+          setHistoryError(err.message);
+        } finally {
+          setLoadingHistory(false);
+        }
+      };
+      
+      fetchHistory();
+    }
+  }, [showHistory]);
+
+  const extractFileName = (path) => {
+    if (!path) return "Unknown File";
+    const parts = path.split('/');
+    const name = parts[parts.length - 1];
+    return name.replace(/^(question|answer)-\d+-/, '');
+  };
+
   const navItems = [
     { name: "Home", path: "/home", icon: (<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M17.5 11.6667H11.6666V17.5H17.5V11.6667Z" stroke="#5E5E5E" stroke-opacity="0.8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -68,7 +115,10 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         </button>
       </div>
 
-      <button className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-2 px-4'} w-full py-3 bg-[#1e1e1e] text-white rounded-xl mb-8 border border-orange-500 shadow-sm hover:bg-[#2a2a2a] transition-colors`}>
+      <button 
+        onClick={() => setShowHistory(true)}
+        className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-2 px-4'} w-full py-3 bg-[#1e1e1e] text-white rounded-xl mb-8 border border-orange-500 shadow-sm hover:bg-[#2a2a2a] transition-colors`}
+      >
         <svg width="19" height="18" viewBox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path fill-rule="evenodd" clip-rule="evenodd" d="M4.63783 8.63783L6.18377 4H7.13246L8.6784 8.63783L13.3162 10.1838V11.1325L8.6784 12.6784L7.13246 17.3162H6.18377L4.63783 12.6784L0 11.1325V10.1838L4.63783 8.63783Z" fill="white"/>
 <path fill-rule="evenodd" clip-rule="evenodd" d="M13.3878 2.38783L14.1838 0H15.1325L15.9284 2.38783L18.3162 3.18377V4.13246L15.9284 4.9284L15.1325 7.31623H14.1838L13.3878 4.9284L11 4.13246V3.18377L13.3878 2.38783Z" fill="white"/>
@@ -107,6 +157,57 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           </div>
         )}
       </div>
+
+      {showHistory && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900 bricolage">Assessment History</h2>
+              <button onClick={() => setShowHistory(false)} className="text-gray-400 hover:text-gray-600 p-1">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              {loadingHistory ? (
+                <p className="text-gray-500 text-center py-8">Loading assessments...</p>
+              ) : historyError ? (
+                <p className="text-red-500 text-center py-8 font-medium">{historyError}</p>
+              ) : assessments.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No previous assessments found.</p>
+              ) : (
+                <div className="space-y-4">
+                  {assessments.map(item => (
+                    <div key={item.id} className="border border-gray-100 rounded-xl p-4 hover:border-orange-200 transition-colors cursor-pointer bg-gray-50/50 flex flex-col gap-2">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-semibold text-gray-500">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </span>
+                        <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded capitalize">
+                          {item.status}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-sm font-semibold text-gray-800 truncate" title={extractFileName(item.question_file_path)}>
+                          Q: {extractFileName(item.question_file_path)}
+                        </p>
+                        <p className="text-sm text-gray-600 truncate" title={extractFileName(item.answer_file_path)}>
+                          A: {extractFileName(item.answer_file_path)}
+                        </p>
+                      </div>
+                      {(item.total_score !== null && item.total_marks !== null) && (
+                        <div className="flex items-center justify-between mt-1 pt-3 border-t border-gray-100">
+                          <span className="text-sm font-bold text-gray-800">{item.total_score}/{item.total_marks} Marks</span>
+                          <span className="text-sm font-bold text-orange-600">{item.percentage}%</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };

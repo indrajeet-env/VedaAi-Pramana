@@ -1,5 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import Mapping from "../components/Mapping";
 import { UploadCloud, File as FileIcon, X, ArrowRight, Sparkles } from "lucide-react";
 import Frame01 from "../assets/Frame01.png";
 
@@ -13,6 +15,9 @@ const Upload = () => {
   const [questionPaper, setQuestionPaper] = useState(null);
   const [answerSheet, setAnswerSheet] = useState(null);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isMapping, setIsMapping] = useState(false);
+  const [apiResult, setApiResult] = useState(null);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const qpInputRef = useRef(null);
   const asInputRef = useRef(null);
@@ -50,6 +55,8 @@ const Upload = () => {
       name: file.name,
       size: formatFileSize(file.size),
       pages,
+      url: URL.createObjectURL(file),
+      raw: file
     });
   };
 
@@ -108,6 +115,16 @@ const Upload = () => {
     );
   };
 
+  if (isMapping) {
+    return (
+      <Mapping 
+        answerSheetUrl={answerSheet?.url} 
+        questionPaperName={questionPaper?.name} 
+        apiResult={apiResult} 
+      />
+    );
+  }
+
   if (isExtracting) {
     return (
       <div className="w-full h-full bg-white rounded-[32px] shadow-sm flex flex-col items-center justify-center">
@@ -116,7 +133,7 @@ const Upload = () => {
             <Sparkles size={56} className="text-orange-500 animate-pulse" strokeWidth={1.5} />
           </div>
           <div className="bricolage">
-            <h2 className="text-5xl font-bold text-gray-900 mb-4 tracking-tight">Extracting...</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 tracking-tight">Extracting...</h2>
           </div>
           <p className="text-gray-500 text-xl font-medium">This may take a while</p>
         </div>
@@ -130,13 +147,16 @@ const Upload = () => {
       <div className="bricolage text-center mb-8">
         <h2 className="text-4xl font-bold text-gray-900 tracking-tight items-center">
           <span>Upload</span>
-          <span className="text-orange-500 bg-orange-50 px-4 py-1.5 rounded-md">
+          <span className="text-orange-500 bg-orange-50 px-4 py-1.5 rounded-md ml-3">
             Question Paper & Answer Sheets
           </span>
         </h2>
         <p className="text-gray-500 mt-4 text-lg">
           Upload both files to get started
         </p>
+        {errorMsg && (
+          <p className="text-red-500 mt-4 text-sm font-semibold">{errorMsg}</p>
+        )}
       </div>
 
       <div className="mb-10 relative">
@@ -161,9 +181,56 @@ const Upload = () => {
       <div className="flex flex-col items-center">
         <button 
           disabled={!questionPaper || !answerSheet}
-          onClick={() => {
+          onClick={async () => {
             setIsExtracting(true);
+            setErrorMsg("");
             if (setIsSidebarCollapsed) setIsSidebarCollapsed(true);
+            
+            try {
+              const { data: { session } } = await supabase.auth.getSession();
+              const token = session?.access_token;
+              
+              if (!token) throw new Error("No active session found. Please login again.");
+
+              const headers = { Authorization: `Bearer ${token}` };
+
+              // 1. Create assessment
+              const createRes = await fetch("/api/assessments", { method: "POST", headers });
+              if (!createRes.ok) throw new Error("Failed to create assessment.");
+              const createData = await createRes.json();
+              const assessmentId = createData.assessment.id;
+
+              // 2. Upload files
+              const formData = new FormData();
+              formData.append("questionPaper", questionPaper.raw);
+              formData.append("answerSheet", answerSheet.raw);
+
+              const uploadRes = await fetch(`/api/assessments/${assessmentId}/upload`, {
+                method: "POST",
+                headers,
+                body: formData,
+              });
+              if (!uploadRes.ok) throw new Error("Failed to upload files.");
+
+              // 3. Process assessment
+              const processRes = await fetch(`/api/assessments/${assessmentId}/process`, {
+                method: "POST",
+                headers,
+              });
+              if (!processRes.ok) throw new Error("Failed to process assessment.");
+              const processData = await processRes.json();
+
+              setApiResult(processData.result);
+              
+              setIsExtracting(false);
+              setIsMapping(true);
+
+            } catch (error) {
+              console.error(error);
+              setErrorMsg(error.message || "An error occurred during extraction.");
+              setIsExtracting(false);
+              if (setIsSidebarCollapsed) setIsSidebarCollapsed(false);
+            }
           }}
           className={`flex items-center gap-2 px-10 py-4 rounded-full font-medium text-lg transition-all ${
             questionPaper && answerSheet 
