@@ -1,9 +1,11 @@
 import { NavLink } from "react-router-dom";
 import { 
-  School
+  School,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
-const Sidebar = () => {
+const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const navItems = [
     { name: "Home", path: "/home", icon: (<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M17.5 11.6667H11.6666V17.5H17.5V11.6667Z" stroke="#5E5E5E" stroke-opacity="0.8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -41,9 +43,10 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-64 bg-white rounded-r-3xl flex flex-col h-screen py-6 px-4 shadow-sm border-r border-gray-100 shrink-0">
-      <div className="flex items-center gap-2 px-2 mb-8">
-        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <aside className={`${isCollapsed ? 'w-24' : 'w-64'} bg-white rounded-r-3xl flex flex-col h-screen py-6 px-4 shadow-sm border-r border-gray-100 shrink-0 transition-all duration-300`}>
+      <div className={`flex items-center ${isCollapsed ? 'flex-col gap-4' : 'justify-between'} px-2 mb-8`}>
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2'}`}>
+          <svg width="40" height="40" className="shrink-0" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
 <rect width="40" height="40" rx="10" fill="#303030"/>
 <path fill-rule="evenodd" clip-rule="evenodd" d="M22.7272 28.3583C22.7272 28.3583 23.4546 30.3003 24.1213 30.4218H15.697C13.9999 30.4218 12.4851 29.4508 11.9999 27.6299L7.09086 13.0636C7.09086 13.0636 6.66681 11.3035 6.00012 11.0001H14.6063C16.3034 11.0609 17.4549 11.6677 18.1216 13.9135L22.7272 28.3583Z" fill="white"/>
 <path opacity="0.2" fill-rule="evenodd" clip-rule="evenodd" d="M22.7272 28.3583C22.7272 28.3583 23.4546 30.3003 24.1213 30.4218H15.697C13.9999 30.4218 12.4851 29.4508 11.9999 27.6299L7.09086 13.0636C7.09086 13.0636 6.66681 11.3035 6.00012 11.0001H14.6063C16.3034 11.0609 17.4549 11.6677 18.1216 13.9135L22.7272 28.3583Z" fill="url(#paint0_linear_5856_321)"/>
@@ -58,15 +61,19 @@ const Sidebar = () => {
 </defs>
 </svg>
 
-        <span className="text-xl font-bold text-gray-800 tracking-tight">Pramana</span>
+          {!isCollapsed && <span className="text-xl font-bold text-gray-800 tracking-tight">Pramana</span>}
+        </div>
+        <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-1 rounded-md hover:bg-gray-100 text-gray-500 transition-colors shrink-0">
+          {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+        </button>
       </div>
 
-      <button className="flex items-center gap-2 w-full px-4 py-3 bg-[#1e1e1e] text-white rounded-xl mb-8 border border-orange-500 shadow-sm hover:bg-[#2a2a2a] transition-colors">
+      <button className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-2 px-4'} w-full py-3 bg-[#1e1e1e] text-white rounded-xl mb-8 border border-orange-500 shadow-sm hover:bg-[#2a2a2a] transition-colors`}>
         <svg width="19" height="18" viewBox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path fill-rule="evenodd" clip-rule="evenodd" d="M4.63783 8.63783L6.18377 4H7.13246L8.6784 8.63783L13.3162 10.1838V11.1325L8.6784 12.6784L7.13246 17.3162H6.18377L4.63783 12.6784L0 11.1325V10.1838L4.63783 8.63783Z" fill="white"/>
 <path fill-rule="evenodd" clip-rule="evenodd" d="M13.3878 2.38783L14.1838 0H15.1325L15.9284 2.38783L18.3162 3.18377V4.13246L15.9284 4.9284L15.1325 7.31623H14.1838L13.3878 4.9284L11 4.13246V3.18377L13.3878 2.38783Z" fill="white"/>
 </svg>
-        <span className="font-medium text-sm">AI Teacher's Toolkit</span>
+        {!isCollapsed && <span className="font-medium text-sm">AI Teacher's Toolkit</span>}
       </button>
 
       <nav className="flex-1 space-y-1">
@@ -75,27 +82,30 @@ const Sidebar = () => {
             key={item.name}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium text-sm ${
+              `flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded-xl transition-colors font-medium text-sm ${
                 isActive
                   ? "bg-gray-100 text-black"
                   : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
               }`
             }
+            title={isCollapsed ? item.name : undefined}
           >
             {item.icon}
-            {item.name}
+            {!isCollapsed && <span>{item.name}</span>}
           </NavLink>
         ))}
       </nav>
 
-      <div className="mt-auto bg-gray-100 rounded-xl p-4 flex items-center gap-3 border border-gray-100">
-        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-400 shadow-sm border border-gray-200">
+      <div className={`mt-auto bg-gray-100 rounded-xl ${isCollapsed ? 'p-2 justify-center' : 'p-4'} flex items-center gap-3 border border-gray-100`}>
+        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-400 shadow-sm border border-gray-200 shrink-0">
           <School size={20} />
         </div>
-        <div>
-          <p className="text-sm font-semibold text-gray-800">Springfield High</p>
-          <p className="text-xs text-gray-500">Demo School</p>
-        </div>
+        {!isCollapsed && (
+          <div className="overflow-hidden">
+            <p className="text-sm font-semibold text-gray-800 truncate">Springfield High</p>
+            <p className="text-xs text-gray-500 truncate">Demo School</p>
+          </div>
+        )}
       </div>
     </aside>
   );

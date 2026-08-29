@@ -1,23 +1,56 @@
 import { useState, useRef } from "react";
-import { UploadCloud, File as FileIcon, X, ArrowRight } from "lucide-react";
+import { useOutletContext } from "react-router-dom";
+import { UploadCloud, File as FileIcon, X, ArrowRight, Sparkles } from "lucide-react";
 import Frame01 from "../assets/Frame01.png";
 
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
 const Upload = () => {
+  const { setIsSidebarCollapsed } = useOutletContext();
   const [questionPaper, setQuestionPaper] = useState(null);
   const [answerSheet, setAnswerSheet] = useState(null);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   const qpInputRef = useRef(null);
   const asInputRef = useRef(null);
 
-  const handleFileChange = (e, setFile) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFile({
-        name: file.name,
-        size: (file.size / (1024 * 1024)).toFixed(1) + " MB",
-        pages: Math.floor(Math.random() * 10) + 1, // Mock pages for display
-      });
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024 * 1024) {
+      return (bytes / 1024).toFixed(1) + " KB";
     }
+
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  };
+
+  const getPdfPageCount = async (file) => {
+    const arrayBuffer = await file.arrayBuffer();
+
+    const pdf = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+    }).promise;
+
+    return pdf.numPages;
+  };
+
+  const handleFileChange = async (e, setFile) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    let pages = 1;
+
+    if (file.type === "application/pdf") {
+      pages = await getPdfPageCount(file);
+    }
+
+    setFile({
+      name: file.name,
+      size: formatFileSize(file.size),
+      pages,
+    });
   };
 
   const removeFile = (e, setFile) => {
@@ -41,7 +74,7 @@ const Upload = () => {
           ref={inputRef} 
           className="hidden" 
           onChange={(e) => handleFileChange(e, setFile)}
-          accept=".pdf,.doc,.docx"
+          accept=".pdf"
         />
 
         {file ? (
@@ -75,13 +108,29 @@ const Upload = () => {
     );
   };
 
+  if (isExtracting) {
+    return (
+      <div className="w-full h-full bg-white rounded-[32px] shadow-sm flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center justify-center text-center">
+          <div className="w-28 h-28 bg-orange-50 rounded-full flex items-center justify-center mb-8 shadow-inner">
+            <Sparkles size={56} className="text-orange-500 animate-pulse" strokeWidth={1.5} />
+          </div>
+          <div className="bricolage">
+            <h2 className="text-5xl font-bold text-gray-900 mb-4 tracking-tight">Extracting...</h2>
+          </div>
+          <p className="text-gray-500 text-xl font-medium">This may take a while</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col items-center justify-center max-w-4xl mx-auto py-10">
       
       <div className="bricolage text-center mb-8">
         <h2 className="text-4xl font-bold text-gray-900 tracking-tight items-center">
           <span>Upload</span>
-          <span className="text-orange-500 bg-orange-50 px-4 py-1 rounded-2xl">
+          <span className="text-orange-500 bg-orange-50 px-4 py-1.5 rounded-md">
             Question Paper & Answer Sheets
           </span>
         </h2>
@@ -112,19 +161,23 @@ const Upload = () => {
       <div className="flex flex-col items-center">
         <button 
           disabled={!questionPaper || !answerSheet}
+          onClick={() => {
+            setIsExtracting(true);
+            if (setIsSidebarCollapsed) setIsSidebarCollapsed(true);
+          }}
           className={`flex items-center gap-2 px-10 py-4 rounded-full font-medium text-lg transition-all ${
             questionPaper && answerSheet 
               ? "bg-[#1e1e1e] text-white hover:bg-[#2a2a2a] shadow-md shadow-gray-200" 
-              : "bg-black text-white cursor-not-allowed"
+              : "bg-stone-400 text-gray-300 cursor-not-allowed"
           }`}
         >
           <p className="text-sm ">Start Mapping</p>
           <ArrowRight size={20} />
         </button>
-        <p className="text-xs text-gray-400 mt-4 flex flex-col gap-1 items-center">
+        <div className="text-xs text-gray-400 mt-4 flex flex-col gap-1 items-center">
           <p>Once both files are uploaded, you’ll able to map answers with questions</p>
           <p>Mapping takes about 2-3 minutes depending on the file size.</p>
-        </p>
+        </div>
       </div>
     </div>
   );
