@@ -1,10 +1,10 @@
 const supabase = require("../config/supabase");
-const {downloadAnswerSheet, downloadQuestionPaper} = require("../services/storageService");
+const { downloadAnswerSheet, downloadQuestionPaper } = require("../services/storageService");
 
 const { extractTextWithOCR } = require("../services/ocrService");
 const { extractLocations } = require("../services/highlightService");
 
-const {structureAssessment, evaluateAnswer} = require("../services/llmService");
+const { structureAssessment, evaluateAnswer } = require("../services/llmService");
 
 const sanitizeFileName = (fileName) => {
   return fileName
@@ -15,9 +15,9 @@ const sanitizeFileName = (fileName) => {
 const createAssessment = async (req, res) => {
   try {
     const { data, error } = await supabase.from("assessments").insert({
-        user_id: req.user.id,
-        status: "created",
-      })
+      user_id: req.user.id,
+      status: "created",
+    })
       .select()
       .single(); // instead of returning array of objects we'll be returning single object
 
@@ -83,9 +83,9 @@ const uploadAssessmentFiles = async (req, res) => {
 
     // Upload question paper
     const { error: questionUploadError } = await supabase.storage.from("question-papers").upload(questionPath, questionPaper.buffer, {
-        contentType: questionPaper.mimetype,
-        upsert: false,
-      });
+      contentType: questionPaper.mimetype,
+      upsert: false,
+    });
 
     if (questionUploadError) {
       throw questionUploadError;
@@ -93,9 +93,9 @@ const uploadAssessmentFiles = async (req, res) => {
 
     // Upload answer sheet
     const { error: answerUploadError } = await supabase.storage.from("answer-sheets").upload(answerPath, answerSheet.buffer, {
-        contentType: answerSheet.mimetype,
-        upsert: false,
-      });
+      contentType: answerSheet.mimetype,
+      upsert: false,
+    });
 
     if (answerUploadError) {
       throw answerUploadError;
@@ -190,17 +190,17 @@ const processAssessment = async (req, res) => {
     console.log("Answer OCR completed.");
 
     console.log(
-    "OCR TextOverlay available:",
-    answerOCR.parsedResults?.map((page, index) => ({
+      "OCR TextOverlay available:",
+      answerOCR.parsedResults?.map((page, index) => ({
         page: index + 1,
         hasTextOverlay: !!page.TextOverlay,
         lines: page.TextOverlay?.Lines?.length || 0,
         words: page.TextOverlay?.Lines?.reduce(
-            (sum, line) => sum + (line.Words?.length || 0),
-            0
+          (sum, line) => sum + (line.Words?.length || 0),
+          0
         ) || 0
-    }))
-);
+      }))
+    );
 
     // 4. Gemini structures the assessment
 
@@ -221,7 +221,7 @@ const processAssessment = async (req, res) => {
     let totalScore = 0;
     let totalMarks = 0;
 
-// Currently this makes one gemini call per question, later on improve this for making one gemini call for atleast one side of the question paper
+    // Currently this makes one gemini call per question, later on improve this for making one gemini call for atleast one side of the question paper
 
     for (const question of structuredAssessment.questions) {
       const evaluation = await evaluateAnswer(
@@ -231,11 +231,11 @@ const processAssessment = async (req, res) => {
       );
 
       const answerLocations = extractLocations(
-        question.studentAnswer, 
+        question.studentAnswer,
         answerOCR.parsedResults
       );
 
-      console.log(`Answer locations for Q${question.questionNumber}:`,JSON.stringify(answerLocations, null, 2));
+      console.log(`Answer locations for Q${question.questionNumber}:`, JSON.stringify(answerLocations, null, 2));
 
       evaluatedQuestions.push({
         questionNumber: question.questionNumber,
@@ -256,9 +256,9 @@ const processAssessment = async (req, res) => {
 
     // 6. Calculate aggregate result
 
-    const percentage = totalMarks > 0 ? Number(((totalScore / totalMarks) * 100).toFixed(2)): 0;
+    const percentage = totalMarks > 0 ? Number(((totalScore / totalMarks) * 100).toFixed(2)) : 0;
 
-    const result = {questions: evaluatedQuestions};
+    const result = { questions: evaluatedQuestions };
 
     // 7. Save result to database
 
@@ -407,7 +407,7 @@ const getAnswerSheet = async (req, res) => {
     }
 
     const buffer = await downloadAnswerSheet(assessment.answer_file_path);
-    
+
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="answer-sheet-${id}.pdf"`);
     return res.send(buffer);
@@ -421,4 +421,4 @@ const getAnswerSheet = async (req, res) => {
 };
 
 
-module.exports = {createAssessment, uploadAssessmentFiles, processAssessment, getAssessments, getAssessmentById, getAnswerSheet};
+module.exports = { createAssessment, uploadAssessmentFiles, processAssessment, getAssessments, getAssessmentById, getAnswerSheet };

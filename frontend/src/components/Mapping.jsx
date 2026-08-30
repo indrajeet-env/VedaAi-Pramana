@@ -13,7 +13,7 @@ const OCRPageHeight = 3508;
 const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [expandedQs, setExpandedQs] = useState({});
-  
+
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
@@ -84,7 +84,7 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
 
   const getBadgeColor = (score, maxMarks) => {
     const status = getStatus(score, maxMarks);
-    switch(status) {
+    switch (status) {
       case 'correct': return 'bg-green-100 text-green-700';
       case 'partial': return 'bg-orange-100 text-orange-700';
       case 'incorrect': return 'bg-red-100 text-red-700';
@@ -120,7 +120,7 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
             <h3 className="font-bold text-gray-900 bricolage text-lg">Extracted Questions</h3>
             <p className="text-xs text-gray-500 mt-1 truncate max-w-[200px]">From: {questionPaperName || "Question Paper"}</p>
           </div>
-          <button 
+          <button
             onClick={toggleAll}
             className="text-xs font-medium text-orange-500 hover:text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
           >
@@ -128,11 +128,11 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
             {isAllExpanded ? "Collapse All" : "Expand All"}
           </button>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30">
           {questions.map((q) => (
             <div key={q.questionNumber} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm transition-all hover:border-orange-200">
-              <div 
+              <div
                 className="p-4 flex items-center justify-between cursor-pointer"
                 onClick={() => toggleQ(q.questionNumber)}
               >
@@ -148,14 +148,14 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
                   {expandedQs[q.questionNumber] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 </button>
               </div>
-              
+
               {expandedQs[q.questionNumber] && (
                 <div className="px-4 pb-4 pt-1 text-sm text-gray-600 border-t border-gray-50 bg-gray-50/50 space-y-3">
                   <div>
                     <p className="font-semibold text-gray-800 mb-1">Question:</p>
                     <p className="text-gray-700">{q.question}</p>
                   </div>
-                  
+
                   {q.feedback && (
                     <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-3">
                       <p className="font-semibold text-blue-800 mb-1 flex items-center gap-1">
@@ -176,7 +176,7 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
                         </ul>
                       </div>
                     )}
-                    
+
                     {q.weaknesses?.length > 0 && (
                       <div className="bg-orange-50/50 border border-orange-100 rounded-lg p-3">
                         <p className="font-semibold text-orange-800 mb-1 flex items-center gap-1">
@@ -188,7 +188,7 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
                       </div>
                     )}
                   </div>
-                  
+
                   {q.unclearParts?.length > 0 && (
                     <div className="bg-red-50/50 border border-red-100 rounded-lg p-3">
                       <p className="font-semibold text-red-800 mb-1">Unclear Parts</p>
@@ -221,18 +221,18 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
 
         <div className="flex-1 bg-[#525659] relative overflow-auto flex justify-center py-20">
           {fileProp ? (
-             <Document
-               key={answerSheetUrl}
-               file={fileProp}
-               onLoadSuccess={onDocumentLoadSuccess}
-               onLoadError={(error) => console.error("PDF Load Error Details:", error)}
-               className="flex flex-col items-center shadow-lg"
-               loading={
-                 <div className="text-white bg-black/50 px-4 py-2 rounded-lg">
-                   Loading PDF...
-                 </div>
-               }
-             >
+            <Document
+              key={answerSheetUrl}
+              file={fileProp}
+              onLoadSuccess={onDocumentLoadSuccess}
+              onLoadError={(error) => console.error("PDF Load Error Details:", error)}
+              className="flex flex-col items-center shadow-lg"
+              loading={
+                <div className="text-white bg-black/50 px-4 py-2 rounded-lg">
+                  Loading PDF...
+                </div>
+              }
+            >
               <div className="relative">
                 <Page
                   pageNumber={pageNumber}
@@ -272,7 +272,7 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
                   ));
                 })()}
               </div>
-             </Document>
+            </Document>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-100 absolute inset-0">
               No PDF Loaded
