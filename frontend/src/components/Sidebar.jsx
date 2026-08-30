@@ -7,6 +7,7 @@ import {
   ChevronRight,
   X
 } from "lucide-react";
+import { API_URL } from "../services/api";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const [showHistory, setShowHistory] = useState(false);
@@ -26,7 +27,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) throw new Error("No active session");
           
-          const res = await fetch("/api/assessments", {
+          const res = await fetch(`${API_URL}/api/assessments`, {
             headers: {
               Authorization: `Bearer ${session.access_token}`
             }

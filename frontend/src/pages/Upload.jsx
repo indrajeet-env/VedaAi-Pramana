@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import Mapping from "../components/Mapping";
 import { UploadCloud, File as FileIcon, X, ArrowRight, Sparkles } from "lucide-react";
 import Frame01 from "../assets/Frame01.png";
+import { API_URL } from "../services/api";
 
 import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -195,7 +196,7 @@ const Upload = () => {
               const headers = { Authorization: `Bearer ${token}` };
 
               // 1. Create assessment
-              const createRes = await fetch("/api/assessments", { method: "POST", headers });
+              const createRes = await fetch(`${API_URL}/api/assessments`, { method: "POST", headers });
               if (!createRes.ok) throw new Error("Failed to create assessment.");
               const createData = await createRes.json();
               const assessmentId = createData.assessment.id;
@@ -205,7 +206,7 @@ const Upload = () => {
               formData.append("questionPaper", questionPaper.raw);
               formData.append("answerSheet", answerSheet.raw);
 
-              const uploadRes = await fetch(`/api/assessments/${assessmentId}/upload`, {
+              const uploadRes = await fetch(`${API_URL}/api/assessments/${assessmentId}/upload`, {
                 method: "POST",
                 headers,
                 body: formData,
@@ -213,7 +214,7 @@ const Upload = () => {
               if (!uploadRes.ok) throw new Error("Failed to upload files.");
 
               // 3. Process assessment
-              const processRes = await fetch(`/api/assessments/${assessmentId}/process`, {
+              const processRes = await fetch(`${API_URL}/api/assessments/${assessmentId}/process`, {
                 method: "POST",
                 headers,
               });

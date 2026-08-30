@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useOutletContext } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Mapping from "../components/Mapping";
+import { API_URL } from "../services/api";
 
 const AssessmentDetail = () => {
   const { id } = useParams();
@@ -29,7 +30,7 @@ const AssessmentDetail = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error("No active session");
 
-        const res = await fetch(`/api/assessments/${id}`, {
+        const res = await fetch(`${API_URL}/api/assessments/${id}`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
           },
@@ -88,7 +89,7 @@ const AssessmentDetail = () => {
   return (
     <div className="w-full h-full">
       <Mapping 
-        answerSheetUrl={`/api/assessments/${id}/answer-sheet`} 
+        answerSheetUrl={`${API_URL}/api/assessments/${id}/answer-sheet`} 
         questionPaperName={questionPaperName} 
         apiResult={assessmentData.result} 
       />
