@@ -1,0 +1,150 @@
+{
+  "info": {
+    "name": "VedaAI Pramana - Assessments",
+    "description": "Postman collection for testing the VedaAI Pramana assessment APIs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5555"
+    },
+    {
+      "key": "SUPABASE_ACCESS_TOKEN",
+      "value": ""
+    },
+    {
+      "key": "ASSESSMENT_ID",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Create Assessment",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{SUPABASE_ACCESS_TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/assessments",
+          "host": [
+            "{{BASE_URL}}"
+          ],
+          "path": [
+            "api",
+            "assessments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Assessment Files",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/assessments/{{ASSESSMENT_ID}}/upload",
+          "host": [
+            "{{BASE_URL}}"
+          ],
+          "path": [
+            "api",
+            "assessments",
+            "{{ASSESSMENT_ID}}",
+            "upload"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Process OCR Test on the Assessment",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{SUPABASE_ACCESS_TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/assessments/{{ASSESSMENT_ID}}/process",
+          "host": [
+            "{{BASE_URL}}"
+          ],
+          "path": [
+            "api",
+            "assessments",
+            "{{ASSESSMENT_ID}}",
+            "process"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get My Assessments",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{SUPABASE_ACCESS_TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/assessments",
+          "host": [
+            "{{BASE_URL}}"
+          ],
+          "path": [
+            "api",
+            "assessments"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
