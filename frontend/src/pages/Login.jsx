@@ -33,7 +33,7 @@ function Login() {
 
     localStorage.setItem("userEmail", userEmail);
 
-    console.log("Access token:", session?.access_token);
+    // console.log("Access token:", session?.access_token);
 
     navigate("/upload");
   };
