@@ -7,6 +7,9 @@ import 'react-pdf/dist/Page/TextLayer.css';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
+const OCRPageWidth = 2480;
+const OCRPageHeight = 3508;
+
 const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [expandedQs, setExpandedQs] = useState({});
@@ -16,6 +19,8 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
   const [scale, setScale] = useState(1.0);
   const [fileProp, setFileProp] = useState(null);
   const [selectedQuestionNumber, setSelectedQuestionNumber] = useState(null);
+
+  const [pageDimensions, setPageDimensions] = useState(null);
 
   useEffect(() => {
     const prepareFile = async () => {
@@ -96,6 +101,15 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
   const zoomOut = () => setScale(s => Math.max(s - 0.1, 0.5));
   const prevPage = () => setPageNumber(p => Math.max(p - 1, 1));
   const nextPage = () => setPageNumber(p => Math.min(p + 1, numPages || 1));
+
+  const onPageLoadSuccess = (page) => {
+    const viewport = page.getViewport({ scale: 1 });
+
+    setPageDimensions({
+      width: viewport.width,
+      height: viewport.height
+    });
+  };
 
   return (
     <div className="w-full h-full flex gap-6 bg-transparent">
@@ -190,7 +204,7 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
         </div>
       </div>
 
-      {/* RIGHT PANEL: Answer Sheet PDF Viewer */}
+      {/* RIGHT PANEL: Answer Sheet PDF  */}
       <div className="w-2/3 bg-white rounded-[32px] shadow-sm border border-gray-100 flex flex-col overflow-hidden relative">
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 bg-white shadow-md border border-gray-200 rounded-full px-4 py-2 flex items-center gap-4">
           <div className="flex items-center gap-2 border-r border-gray-200 pr-4">
@@ -219,32 +233,45 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
                  </div>
                }
              >
-               <Page 
-                 pageNumber={pageNumber} 
-                 scale={scale} 
-                 renderAnnotationLayer={false}
-                 renderTextLayer={false}
-                 className="relative"
-               >
-                 {selectedQuestionNumber && (() => {
-                   const q = questions.find(q => q.questionNumber === selectedQuestionNumber);
-                   if (!q || !q.answerLocations) return null;
-                   return q.answerLocations
-                     .filter(loc => loc.page === pageNumber)
-                     .map((loc, idx) => (
-                       <div 
-                         key={idx}
-                         className="absolute bg-green-400/40 border-2 border-green-500 rounded pointer-events-none transition-all duration-300 z-50"
-                         style={{
-                           left: `${loc.left * scale}px`,
-                           top: `${loc.top * scale}px`,
-                           width: `${loc.width * scale}px`,
-                           height: `${loc.height * scale}px`
-                         }}
-                       />
-                     ));
-                 })()}
-               </Page>
+              <div className="relative">
+                <Page
+                  pageNumber={pageNumber}
+                  scale={scale}
+                  onLoadSuccess={onPageLoadSuccess}
+                  renderAnnotationLayer={false}
+                  renderTextLayer={false}
+                />
+
+                {selectedQuestionNumber && pageDimensions && (() => {
+                  const q = questions.find(
+                    q => q.questionNumber === selectedQuestionNumber
+                  );
+
+                  if (!q?.answerLocations?.length) return null;
+
+                  const pageLocations = q.answerLocations.filter(
+                    loc => loc.page === pageNumber
+                  );
+
+                  if (!pageLocations.length) return null;
+
+                  const scaleX = pageDimensions.width / OCRPageWidth;
+                  const scaleY = pageDimensions.height / OCRPageHeight;
+
+                  return pageLocations.map((loc, idx) => (
+                    <div
+                      key={idx}
+                      className="absolute bg-yellow-300/40 border-2 border-yellow-500 rounded pointer-events-none z-50"
+                      style={{
+                        left: `${loc.left * scaleX * scale}px`,
+                        top: `${loc.top * scaleY * scale}px`,
+                        width: `${loc.width * scaleX * scale}px`,
+                        height: `${loc.height * scaleY * scale}px`,
+                      }}
+                    />
+                  ));
+                })()}
+              </div>
              </Document>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-100 absolute inset-0">

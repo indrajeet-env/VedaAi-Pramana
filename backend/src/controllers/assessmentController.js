@@ -189,6 +189,19 @@ const processAssessment = async (req, res) => {
     console.log("Question OCR completed.");
     console.log("Answer OCR completed.");
 
+    console.log(
+    "OCR TextOverlay available:",
+    answerOCR.parsedResults?.map((page, index) => ({
+        page: index + 1,
+        hasTextOverlay: !!page.TextOverlay,
+        lines: page.TextOverlay?.Lines?.length || 0,
+        words: page.TextOverlay?.Lines?.reduce(
+            (sum, line) => sum + (line.Words?.length || 0),
+            0
+        ) || 0
+    }))
+);
+
     // 4. Gemini structures the assessment
 
     const structuredAssessment =
@@ -221,6 +234,8 @@ const processAssessment = async (req, res) => {
         question.studentAnswer, 
         answerOCR.parsedResults
       );
+
+      console.log(`Answer locations for Q${question.questionNumber}:`,JSON.stringify(answerLocations, null, 2));
 
       evaluatedQuestions.push({
         questionNumber: question.questionNumber,
