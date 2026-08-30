@@ -2,6 +2,7 @@ const supabase = require("../config/supabase");
 const {downloadAnswerSheet, downloadQuestionPaper} = require("../services/storageService");
 
 const { extractTextWithOCR } = require("../services/ocrService");
+const { extractLocations } = require("../services/highlightService");
 
 const {structureAssessment, evaluateAnswer} = require("../services/llmService");
 
@@ -216,6 +217,11 @@ const processAssessment = async (req, res) => {
         question.maxMarks
       );
 
+      const answerLocations = extractLocations(
+        question.studentAnswer, 
+        answerOCR.parsedResults
+      );
+
       evaluatedQuestions.push({
         questionNumber: question.questionNumber,
         question: question.question,
@@ -226,6 +232,7 @@ const processAssessment = async (req, res) => {
         strengths: evaluation.strengths,
         weaknesses: evaluation.weaknesses,
         unclearParts: question.unclearParts,
+        answerLocations: answerLocations
       });
 
       totalScore += evaluation.score;

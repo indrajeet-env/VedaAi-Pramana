@@ -15,6 +15,7 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
   const [fileProp, setFileProp] = useState(null);
+  const [selectedQuestionNumber, setSelectedQuestionNumber] = useState(null);
 
   useEffect(() => {
     const prepareFile = async () => {
@@ -50,8 +51,25 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
   };
 
   const toggleQ = (id) => {
-    setExpandedQs(prev => ({ ...prev, [id]: !prev[id] }));
+    setExpandedQs(prev => {
+      const isCurrentlyExpanded = prev[id];
+      if (!isCurrentlyExpanded) {
+        setSelectedQuestionNumber(id);
+      } else if (selectedQuestionNumber === id) {
+        setSelectedQuestionNumber(null);
+      }
+      return { ...prev, [id]: !isCurrentlyExpanded };
+    });
   };
+
+  useEffect(() => {
+    if (selectedQuestionNumber) {
+      const q = questions.find(q => q.questionNumber === selectedQuestionNumber);
+      if (q && q.answerLocations && q.answerLocations.length > 0) {
+        setPageNumber(q.answerLocations[0].page);
+      }
+    }
+  }, [selectedQuestionNumber, questions]);
 
   const getStatus = (score, maxMarks) => {
     if (score === maxMarks) return 'correct';
@@ -206,7 +224,27 @@ const Mapping = ({ answerSheetUrl, questionPaperName, apiResult }) => {
                  scale={scale} 
                  renderAnnotationLayer={false}
                  renderTextLayer={false}
-               />
+                 className="relative"
+               >
+                 {selectedQuestionNumber && (() => {
+                   const q = questions.find(q => q.questionNumber === selectedQuestionNumber);
+                   if (!q || !q.answerLocations) return null;
+                   return q.answerLocations
+                     .filter(loc => loc.page === pageNumber)
+                     .map((loc, idx) => (
+                       <div 
+                         key={idx}
+                         className="absolute bg-green-400/40 border-2 border-green-500 rounded pointer-events-none transition-all duration-300 z-50"
+                         style={{
+                           left: `${loc.left * scale}px`,
+                           top: `${loc.top * scale}px`,
+                           width: `${loc.width * scale}px`,
+                           height: `${loc.height * scale}px`
+                         }}
+                       />
+                     ));
+                 })()}
+               </Page>
              </Document>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-100 absolute inset-0">
